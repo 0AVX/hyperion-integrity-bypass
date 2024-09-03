@@ -20,13 +20,13 @@ const     auto CachedHashes = Hyperion + 0xF3FB08;
 #define CMP_MASK 0xFFFFFFFF00000000
 #define PAGE_SIZE 0x1000
 #define PAGE_ALIGN(VA) ((VA) & ~(PAGE_SIZE - 1))
-#define PFN(VA) ((VA) >> 12)
+#define VPN(VA) ((VA) >> 12) // this is a virtual page number, not a PFN.
 
 //
 // Method 1
 //
 using Digest = std::uint64_t[16];
-Digest EarlyDigests[PFN(CodeSize)];
+Digest EarlyDigests[VFN(CodeSize)];
 
 //
 // Method 2
@@ -100,7 +100,7 @@ LONG ExceptionHandler(PEXCEPTION_POINTERS Exception)
 			if constexpr (Method == 1)
 			{
 				const auto EarlyDigest = *(void**)(Context->Rsp + 0x30);
-				std::memcpy(EarlyDigest, &EarlyDigests[PFN(Rva)], sizeof(Digest));
+				std::memcpy(EarlyDigest, &EarlyDigests[VPN(Rva)], sizeof(Digest));
 
 				// MOV RAX, 4
 				Context->Rax = 4;
@@ -153,7 +153,7 @@ void Main()
 		for (auto Page = CodeStart; Page < CodeStart + CodeSize; Page += PAGE_SIZE)
 		{
 			const auto Rva = Page - CodeStart;
-			GetEarlyDigests(Page, PAGE_SIZE, iv, 0, CMP_MASK, &EarlyDigests[PFN(Rva)]);
+			GetEarlyDigests(Page, PAGE_SIZE, iv, 0, CMP_MASK, &EarlyDigests[VPN(Rva)]);
 		}
 	}
 	else if constexpr (Method == 2)
